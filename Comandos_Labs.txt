@@ -1,0 +1,105 @@
+
+Os comandos utilizado no Laboratorio 1
+
+ 1. hbase shell: Inicia o apache Hbase permitindo a entrada de dados, verificação e manipulação desses dados.
+ 2. create 'nome_da_tabela','nome_da_coluna1', 'nome_da_coluna2' (create 'Stocks', 'Current', 'Closing'): cria a tabela e as colunas.
+ 3. put: insere um campo e seu valor dentro de uma coluna, esse comando também é utilizado para atualizar os atualizar o valor do campo.
+ 4. scan: Retorna todas as linhas da tabela.
+ 5. get: Retorna a linha especificada.
+ 6. get 'Stocks', 'ABC', {TIMERANGE=>[0,nnn-1]}: Esse comando retorna para o resultado anterior, aonde tem nnn -1 é substituido por um numero abaixo do resultado atual.
+ 7. delete: exclui a coluna indicada na familia da column family e a linha especificada.
+ 8. deleteall: apaga toda linha da tabela
+ 9. quit !: sai do shell do HBase e retorna à linha de comandos do Hadoop.
+10. disable: desabilita a tabela
+11. drop: apaga toda tabela.
+
+No Azure Storage explorer realizado o upload do arquivo stocks.txt dentro do diretório "data".
+No console digito o seguintes comandos:
+
+ 1. hdfs dfs -ls /data: esse comando entra dentro do diretório data e lista o conteúdo do diretório.
+ 2. hbase org.apache.hadoop.hbase.mapreduce.ImportTsv -Dimporttvs.collumns= "HBASE_ROW_KEY,Closing:Price, Current:Price" -Dimporttsv.bulk.output="/data/storefile" Stocks /data/stocks.txt:
+    Esse comando pega os dados do arquivo stocks.txt delimitado por tabulação transfere esses dados para o formato HBase StoreFile, onde o processamento dos dados é mais rápido.
+ 3. hbase org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles /data/storefile Stocks: Carrega os dados transformados da tabela Stocks criada anteriormente
+ 4. scan 'Stocks', {COLUMNS => 'Current:Price'}: esse comando retorna somente a e o campo especificadas.
+ 5. scan 'Stocks', {LIMIT => 3} : limita o retorna somente da primeira três linhas.
+ 6. scan 'Stocks', {STARTROW=>'C', STOPROW=>'H'}:retorna somente as linha com chave-valor entre "C" e o "H".
+ 
+Criando uma Tabela Hive em uma Tabela HBase.
+
+ 1. hive: Inicia a interface da linha de comando do Hive.
+ 2. CREATE EXTERNAL TABLE StockPrices
+    (Stock STRING,  ClosingPrice FLOAT,  
+    CurrentPrice FLOAT) 
+    STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+    WITH SERDEPROPERTIES  
+    ('hbase.columns.mapping' = ':key,Closing:Price,Current:Price') 
+    TBLPROPERTIES ('hbase.table.name' = 'Stocks'); 
+ Esse comando cria uma tabela externa no hive baseada na Tabela do HBase
+ STORED BY: Diz qual é o manipulador que eu quero usar para ler e gravar os dados.
+ HBaseStorageHandler:manipulador que gerencia o relacionamento com o HBase.
+ SERDEPROPERTIES: Serializada, desserealizada, é o que o SERDE apoia e isso efetivamente mapeará as tabelas e colunas na tabela Hive para a coluna que estão HBase subjacente.
+ TBLPROPERTIES: é onde especifica o nome da tabela HBase que realmente queremos consultar.
+Obervação: se for necessário acrescenter algum valor ou coluna isso deverá ser feito no HBase, tendo que sair do Hive, retornando após de atualizar.
+
+Criar uma vista Phoenix em uma tabela HBase
+
+ 1. zkN-Hbase1.xxxxxxxxxxxxxxxxxxxxxxxx.xx.internal.cloudapp.net: nome do nó ativo do tratador.(encontra no provisamento do cluster no zookeeper).
+ 2. ls / usr / hdp: comando determina a pasta específica da versão na qual o aplicativo Hadoop estão armazenados.
+ 3. /usr/hdp/version/phoenix/bin/sqlline.py zookeeper: 2181: / hbase-unsecure: O comando abre o SQLLine, subistui a versão pelo nome da pasta específica da versão e o zookeper pelo nome interno qualificado no seu nó.
+ 4. CREATE VIEW "Stocks" 
+    (StockCode VARCHAR PRIMARY KEY,  
+    "Closing"."Price" VARCHAR,  
+    "Current"."Price" VARCHAR); 
+A tabela view criar uma exibição SQL baseada na tabela Stocks HBase.
+
+ 5. !exit: sai do SQLLine.
+
+Criar um aplicativo cliente HBase usando Java
+
+ 1. java -version: O comando mostra a versão do java no sistema.
+ 2. echo $JAVA_HOME: Verifica a variavél do sistema do Java.
+ 3. sudo apt-get install maven: o comando instala o Maven
+ 4. mvn -v: verifica os detalhes da instalação.
+ 5. export PATH=/usr/share/maven/bin:$PATH: adiciona a subpasta do bin à variavel do Path.
+ 6. mvn archetype:generate -DarchetypeArtifactId=maven-archetype-quickstart -DgroupId=lex.microsoft.com -DartifactId=Stocks -DinteractiveMode=false: cria um novo projeto no Maven
+ 7. cd : muda de diretório para entrar no projeto
+ 8. ls -R:lista o diretório hierarquico criado para o projeto.
+ 9. rm -r: deleta a pasta especificada.
+10. nano pom.xml:Abre o arquivo pom.xml em um editor de texto. Para sair do editor de texto Crtl+x salva o arquivo e y para sair.
+11. nano src/main/java/lex/microsoft/com/App.java: Abre o editor app.Java para importar os pacotes java, a declaração da função principal.
+12. mvn compile exec:java: copila e executa o aplicativo.
+ 
+Criar e executar a topologia (lab_2)
+
+ 1. mvn compile exec:java -Dstorm.topology=lex.microsoft.com.SensorTopology:cria e executa um projeto Maven
+ 2. mvn clean package:compila o projeto em um arquivo JAR.
+ 3. ls target: visualiza o arquivo JAR compilado neste caso, o nome do arquivo é SensorStream-1.0-SNAPSHOT.jar.
+ 4. storm jar target/SensorStream-1.0-SNAPSHOT.jar lex.microsoft.com.SensorTopology sensorstream :Envia a topologia para o cluster Storm.
+ 
+Lab_3 
+
+ 1. sudo -HE /usr/bin/anaconda/bin/conda install pandas: instala a biblioteca do Pandas
+
+Usando Spark Shell
+
+ 1. pyspark: inicio o shell do Python Spark 
+ 2. txt = sc.textFile("wasb:///example/data/gutenberg/davinci.txt"): cria um RDD (Resilient Distributed Datasets) chamado txt a partir do arquivo de texto. 
+ 3. txt.count(): conta o número de linhas de texto no arquivo de texto.
+ 4. txt.first(): Exibe a primeira linha no arquivo de texto.
+ 5. filtTxt = txt.filter(lambda txt: "Leonardo" in txt):cria um novo RDD somente com as linhas contendo a palavra "Leonardo".
+ 6. filtTxt.count(): filtra os numeros de linhas do RDD.
+ 7. filtTxt.collect(): exibe o conteúdo do filtro
+ 8. quit(): sai do shell do Python.
+
+Usando Scala Shell
+
+ 1. spark-shell:Inicia o shell Spark Scala.
+ 2. val txt = sc.textFile("/example/data/gutenberg/outlineofscience.txt"):Cria um RDD chamado txt a partir do arquivo de texto.
+ 3. :quit: sai do Scala Shell
+ 4. txt = sc.textFile('wasb:///example/data/gutenberg/ulysses.txt') txt.first(): Le o arquivo de texto, armazenado no Azure em um RDD, exibindo o primeiro elemento.
+ 5. ssc.stop(): interrompe o contexto do streming. 
+ 6. query.stop(): interrompe a consulta do streming
+ 7. npm init: cria um pacote.Json para o aplicativo.
+ 8. npm install azure-event-hubs: instala pacote do Azure Event Hub
+ 9. node eventclient.js:executa o script.
+10. spark-shell --packages "com.microsoft.azure:spark-streamingeventhubs_2.11:2.1.0":Inicia o Shell Spark e o pacote Spark-Striming evento hub. 
